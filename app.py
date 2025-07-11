@@ -17,9 +17,7 @@ def install_if_missing(pip_package, import_name=None):
 # Attempt to install only if not present
 install_if_missing("gradio")
 install_if_missing("tensorflow")
-install_if_missing("contractions")
-install_if_missing("spacy")
-install_if_missing("autocorrect")
+install_if_missing("textcleaner_partha")
 
 subprocess.call(["python", "-m", "spacy", "download", "en_core_web_sm"])
 
@@ -31,70 +29,8 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 import random
 import re
-import contractions
-import spacy
-from autocorrect import Speller
-
 import pickle
-
-# === Load spaCy English model ===
-nlp = spacy.load("en_core_web_sm")
-
-# === Initialise Speller ===
-spell = Speller(lang='en')
-
-# === Preprocessing Components ===
-def remove_html_tags(text):
-    clean = re.compile('<.*?>')
-    return re.sub(clean, '', text)
-
-def remove_emojis(text):
-    emoji_pattern = re.compile(
-        "["
-        "\U0001F600-\U0001F64F"  # emoticons
-        "\U0001F300-\U0001F5FF"  # symbols & pictographs
-        "\U0001F680-\U0001F6FF"  # transport & map symbols
-        "\U0001F1E0-\U0001F1FF"  # flags
-        "\U00002700-\U000027BF"  # dingbats
-        "\U0001F900-\U0001F9FF"  # supplemental symbols and pictographs
-        "\U0001FA70-\U0001FAFF"  # extended pictographs
-        "\U00002600-\U000026FF"  # miscellaneous symbols
-        "]+",
-        flags=re.UNICODE
-    )
-    return emoji_pattern.sub(r'', text)
-
-def correct_spelling(text):
-    corrected_words = [spell.correction(word) for word in text.split()]
-    return ' '.join(corrected_words)
-
-def expand_contractions(text):
-    return contractions.fix(text)
-
-# === Main Preprocess Function ===
-def preprocess(text):
-    text = text.lower()
-    text = remove_html_tags(text)
-    text = remove_emojis(text)
-    text = expand_contractions(text)
-
-    try:
-        text = correct_spelling(text)
-    except Exception:
-        pass
-
-    doc = nlp(text)
-
-    tokens = [
-        token.lemma_ for token in doc
-        if token.is_alpha
-           and not token.is_stop
-           and not token.is_punct
-           and not token.like_num
-           and token.pos_ in {"NOUN", "VERB", "ADJ", "ADV"}
-    ]
-
-    return ' '.join(tokens)
+from textcleaner_partha import preprocess
 
 # === Load MAXLEN ===
 with open("maxlen.pkl", "rb") as f:
@@ -157,11 +93,10 @@ def predict_sentiment(text):
     prediction = (ann_model.predict(padded) > 0.5).astype('int')[0][0]
     return "✅ Positive 😊" if prediction == 1 else "⚠️ Negative 😞"
 
-# === Beautiful Gradio Interface ===
 # === Gradio Interface ===
 with gr.Blocks(title="Sentiment Analyser") as app:
     gr.Markdown("""
-    <h1 style="text-align: center;">🧠 भावविवेक (BhāvaViveka)</h1>
+    <p style="text-align: center; font-size: 40px;">🧠 भावविवेक (BhāvaViveka)</p>
     <p style="text-align: center; font-size: 16px;">
         The AI-powered engine that understands and interprets emotional tone in your messages.<br>
         Apply it to emails, reviews, tweets, and more for mindful communication.
